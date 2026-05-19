@@ -1,8 +1,5 @@
-import torch
-
-
 from Back_end.load_config import load_config
-from Back_end.model_src.src import *
+from Back_end.model_src.src import load_fer2013, preprocessing, train
 
 
 def main():

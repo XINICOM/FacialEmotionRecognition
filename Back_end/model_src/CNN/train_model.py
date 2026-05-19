@@ -45,6 +45,8 @@ def train_CNN(model, train_loader, val_loader, epochs, device,
 
             running_loss += loss.item()
 
+            print(running_loss)
+
             _, predicted = torch.max(outputs, 1)
             total_train += labels.size(0)
             correct_train += (predicted == labels).sum().item()
