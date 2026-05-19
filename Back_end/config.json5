@@ -1,0 +1,23 @@
+{
+  "model": "CNN",
+  "CNN": {
+
+    "load_data": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "load_path": "Back_end/data/fer2013.csv",
+      "stratify": true            //true:在划分时分层(能使得数据能平均)
+    },
+    "preprocessing": {
+      "batch_size": 64
+    },
+    "train": {
+      "model_type": "CNN",
+      "epochs": 200,
+      "lr": 0.001,
+      "weight_decay": 1e-4,
+      "save_path": "Back_end/model_save/model_CNN.pth",
+      "verbose": true
+    }
+  }
+}
