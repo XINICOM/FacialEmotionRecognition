@@ -10,10 +10,11 @@ def health():
     return jsonify({'status': 'running', 'message': 'API服务正常'})
 
 
-
+import time
 import torch
 @app.route("/api/cuda")
 def cuda():
+    start = time.time()
     # print("PyTorch 版本:", torch.__version__)
     # print("CUDA 是否可用:", torch.cuda.is_available())
     if torch.cuda.is_available():
@@ -25,10 +26,12 @@ def cuda():
         b = torch.rand(1000, 1000).cuda()
         c = torch.matmul(a, b)
         # print("GPU 矩阵乘法测试通过！")
-        return jsonify({'result': f'{torch.__version__}'})
+        end = time.time()
+        return jsonify({'result': f'{torch.__version__}','time': f'{end - start}'})
     else:
+        end = time.time()
         # print("⚠️ CUDA 不可用，请检查 NVIDIA 驱动和 PyTorch 安装。")
-        return jsonify({'result': 0})
+        return jsonify({'result': 0,'time': f'{end - start}'})
 
 if __name__ == "__main__":
     app.run()
