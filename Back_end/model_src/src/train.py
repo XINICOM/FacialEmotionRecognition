@@ -1,8 +1,5 @@
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 
-
-from Back_end.model_src.src.load_data import load_fer2013
 # ---------------------- CNN ----------------------
 from Back_end.model_src.CNN.train_model import train_CNN
 from Back_end.model_src.CNN.model import EmotionCNN
@@ -25,7 +22,3 @@ def train(cfg, train_loader, val_loader):
     #     train_RNN()
     else:
         raise ValueError(f"Unknown model type: {model_type}")
-
-
-#  def train_CNN(model_src, train_loader, val_loader, epochs, device,
-#                 lr=0.001, weight_decay=0.0, save_path="best_model.pth", verbose=True):
