@@ -3,12 +3,28 @@ app = Flask(__name__)
 
 @app.route("/api")
 def hello():
-    return "Hello World!"
+    return "Hello World5！"
 
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({'status': 'running', 'message': 'API服务正常'})
 
+@app.route('/api/file/<path:filepath>')
+def injection(filepath):
+    return f'已接受文件路径: {filepath}'
+
+@app.route('/api/json', methods=['POST'])
+def json_injection():
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No JSON data'}), 400
+    arg1 = data.get('arg1')
+    arg2 = data.get('arg2')
+    arg3 = data.get('arg3')
+    return jsonify({
+        'message': '已获得JSON',
+        'data': data
+    }), 201
 
 import time
 import torch
@@ -34,4 +50,4 @@ def cuda():
         return jsonify({'result': 0,'time': f'{end - start}'})
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

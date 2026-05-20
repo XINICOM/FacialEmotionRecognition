@@ -1,3 +1,8 @@
+.idea/
+
+#data
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -11,6 +16,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+*.dist/
+*.build/
 downloads/
 eggs/
 .eggs/
