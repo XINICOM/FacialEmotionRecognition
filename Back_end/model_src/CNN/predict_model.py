@@ -55,5 +55,10 @@ def predict_CNN(model, img_path, device):
 
     # 打印并返回结果
     emotion_result = EMOTIONS[pred_idx]
+    """只要id"""
     print(f"预测表情：{emotion_result}")
-    return emotion_result, face_resized
+    # return emotion_result, face_resized
+
+    """"保存face_resized图片"""
+
+    return str(pred_idx)

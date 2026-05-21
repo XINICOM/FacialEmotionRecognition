@@ -1,10 +1,8 @@
 import torch
-from torch import nn
-from torch import optim
-
-import torch
 import torch.nn as nn
 import torch.optim as optim
+
+from Back_end.shared_state import get_controller
 
 
 def train_CNN(model, train_loader, val_loader, epochs, device,
@@ -27,7 +25,13 @@ def train_CNN(model, train_loader, val_loader, epochs, device,
     }
     best_val_acc = 0.0
 
+    ctrl = get_controller()
     for epoch in range(epochs):
+        if ctrl.wait_if_paused_or_terminated():
+            print("收到终止信号，退出任务")
+            return history
+
+
         # ==================== 训练阶段 ====================
         model.train()
         running_loss = 0.0
@@ -80,16 +84,6 @@ def train_CNN(model, train_loader, val_loader, epochs, device,
         history['val_loss'].append(avg_val_loss)
         history['val_acc'].append(val_acc)
 
-        # ==================== 控制台打印控制 ====================
-        if verbose:
-            print(f"Epoch [{epoch + 1}/{epochs}] -> "
-                  f"Train Loss: {avg_train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% || "
-                  f"Val Loss: {avg_val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
-
-        # ==================== 接口扩展点（可选） ====================
-        # 如果你以后想做训练进度的实时推流（比如前端有个进度条），可以在这里把数据包装成 json 发送出去：
-        # current_status = {"epoch": epoch+1, "train_loss": avg_train_loss, "val_acc": val_acc}
-        # send_to_websocket(current_status)
 
         # ==================== 保存最佳模型 ====================
         if val_acc > best_val_acc:
@@ -98,7 +92,25 @@ def train_CNN(model, train_loader, val_loader, epochs, device,
             history['best_val_acc'] = best_val_acc
             history['best_epoch'] = epoch
 
-    return history
+        # ==================== 控制台打印控制 ====================
+        if verbose:
+            print(f"Epoch [{epoch + 1}/{epochs}] -> "
+                  f"Train Loss: {avg_train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% || "
+                  f"Val Loss: {avg_val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
+
+        # ====================== 流式传输 =======================
+        yield {"Epoch": epoch + 1,
+               "train_loss": avg_train_loss, "train_acc": train_acc,
+               "val_loss": avg_val_loss, "val_acc": val_acc}
+
+    if verbose:
+        print("train正常完成")
+    yield "0"
+    return None
+
+
+
+
 
 
 
