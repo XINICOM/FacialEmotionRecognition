@@ -9,7 +9,7 @@ def main():
 
     x_train, x_val, y_train, y_val, ans     = load_fer2013      (cfg=model_cfg["load_data"])
     train_loader, val_loader ,ans           = preprocessing     (model_cfg["preprocessing"], x_train, x_val, y_train, y_val)
-    history ,ans                            = train_stream_packer             (model_cfg["train"], train_loader, val_loader)
+    history                                 = train_stream_packer             (model_cfg["train"], train_loader, val_loader)
     print(history)
 
 
