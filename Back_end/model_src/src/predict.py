@@ -2,7 +2,7 @@ import torch
 
 # ---------------------- CNN ----------------------
 from Back_end.model_src.CNN.predict_model import predict_CNN
-from Back_end.model_src.CNN.model import EmotionCNN
+from Back_end.model_src.CNN.model import IndependentLrDynamicNet
 # ------------------ other_model ------------------
 
 
@@ -15,7 +15,7 @@ def predict(cfg):
 
     model_type = cfg["model_type"]
     if model_type == "CNN":
-        model = EmotionCNN(num_classes=7)
+        model = IndependentLrDynamicNet(num_classes=7)
         # 加载参数（state_dict 会加载到 CPU 内存）
         state_dict = torch.load(model_path, map_location='cpu')  # 强制在 CPU 上加载
         model.load_state_dict(state_dict)

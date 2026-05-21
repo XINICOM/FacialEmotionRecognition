@@ -1,0 +1,17 @@
+{
+  "features": [
+    // 格式: ["conv", out, k, pad, stroke, act, bn, drop2d, lr_factor]
+    ["conv", 32, 3, 1, 1, "relu", true, 0.1, 0.5],     // 底层特征：小学习率(0.5倍)，加微量通道瘦身
+    ["pool", "max", 2, 2],
+    ["conv", 64, 3, 1, 1, "leaky_relu", true, 0.2, 1.0], // 中层特征：正常学习率(1.0倍)
+    ["pool", "avg", 2, 2],
+    ["conv", 128, 3, 1, 1, "gelu", false, 0.3, 2.0]     // 高层特征：快进学习(2.0倍)，高Dropout
+  ],
+  "classifier": {
+    // 每一层独立配置: [隐藏维度, 激活函数, Dropout, 学习率倍数]
+    "layers": [
+      [256, "leaky_relu", 0.5, 1.0],
+      [128, "relu", 0.3, 1.5]
+    ]
+  }
+}

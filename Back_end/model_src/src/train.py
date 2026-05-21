@@ -3,7 +3,7 @@ import json
 
 # ---------------------- CNN ----------------------
 from Back_end.model_src.CNN.train_model import train_CNN
-from Back_end.model_src.CNN.model import EmotionCNN
+from Back_end.model_src.CNN.model import IndependentLrDynamicNet
 # ------------------ other_model ------------------
 
 
@@ -15,7 +15,7 @@ def train_stream_packer(cfg, train_loader, val_loader):
     model_path = cfg["load_model_path"]
 
     if model_type == "CNN":
-        model = EmotionCNN(num_classes=7)
+        model = IndependentLrDynamicNet(num_classes=7)
         if model_path != "0":
             # 加载参数（state_dict 会加载到 CPU 内存）
             state_dict = torch.load(model_path, map_location='cpu')  # 强制在 CPU 上加载

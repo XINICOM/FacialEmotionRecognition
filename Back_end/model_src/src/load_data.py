@@ -7,7 +7,7 @@ from Back_end.model_src.src.load_config_from_str import handle_str_config
 
 
 
-def load_fer2013(df,cfg):
+def load_fer2013(df=None,cfg=None):
     """
     加载并预处理 FER2013 数据集，将其划分为训练集和验证集，并转换为 PyTorch Tensor。
 
@@ -21,7 +21,7 @@ def load_fer2013(df,cfg):
              y_train (Tensor): 训练集标签，形状为 (N_train,)，Long 类型
              y_val (Tensor):   验证集标签，形状为 (N_val,)，Long 类型
     """
-
+    df = pd.read_csv(cfg["load_path"])
     pixels = df['pixels'].apply(lambda x: np.array(x.split(), dtype='float32'))
     x = np.vstack(pixels.values).reshape(-1, 48, 48)  # (样本数, 48, 48)
     y = df['emotion'].values
