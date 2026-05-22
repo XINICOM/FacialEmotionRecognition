@@ -1,22 +1,6 @@
 import torch
 import torch.nn as nn
 
-default_config = {
-        "features": [
-                        # 格式: ["conv", out, k, pad, stroke, act, bn_lr_factor, drop2d, conv_lr_factor]
-                        ["conv", 32, 3, 1, 1, "relu", 0.2, 0.1, 0.5],
-                        ["pool", "max", 2, 2],
-                        ["conv", 64, 3, 1, 1, "leaky_relu", 1.0, 0.2, 1.2],
-                        ["pool", "avg", 4, 4],
-                        ["conv", 128, 3, 1, 1, "gelu", 0.0, 0.3, 2.0],
-        ],
-        "classifier": [
-                        [256, "leaky_relu", 0.5, 1.0],
-                        [128, "relu", 0.3, 1.5],
-                        [32 , "relu", 0.3, 1.5]
-        ]
-    }
-
 
 # ---------- 定义模型结构 ----------
 def get_activation(act_name):
@@ -34,7 +18,7 @@ def get_activation(act_name):
 
 
 class IndependentLrDynamicNet(nn.Module):
-    def __init__(self, config=default_config, num_classes=7, input_channels=1, input_size=(48, 48)):
+    def __init__(self, config, num_classes=7, input_channels=1, input_size=(48, 48)):
         super().__init__()
 
         self.param_lr_groups = []

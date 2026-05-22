@@ -6,27 +6,27 @@
             "name": "pause",
             "prama": null,
             "return": {
-                "successful": "error"
+                "successful": "error",
             },
-            "determinate": false
+            "determinate": false,
         },
         {
             "before": null,
             "name": "resume",
             "prama": null,
             "return": {
-                "successful": "error"
+                "successful": "error",
             },
-            "determinate": false
+            "determinate": false,
         },
         {
             "before": null,
             "name": "terminate",
             "prama": null,
             "return": {
-                "successful": "error"
+                "successful": "error",
             },
-            "determinate": false
+            "determinate": false,
         },
         {
             "before": null,
@@ -35,12 +35,12 @@
                 "test_size": 0.2,
                 "random_state": 42,
                 "load_path": "D:\\pycharm\\homework\\FacialEmotionRecognition\\Back_end\\data\\train\\fer2013.csv",
-                "stratify": true
+                "stratify": true,
             },
             "return": {
-                "successful": "error"
+                "successful": "error",
             },
-            "determinate": false
+            "determinate": false,
         },
         {
             "before": "load_data",
@@ -49,9 +49,9 @@
                 "batch_size": 64
             },
             "return":{
-                "successful": "error"
+                "successful": "error",
             },
-            "determinate": false
+            "determinate": false,
         },
         {
             "before": "preprocessing",
@@ -63,10 +63,10 @@
                 "weight_decay": 1e-4,
                 "load_model_path": "path",
                 "save_path": "Back_end/model_save/model_CNN.pth",
-                "verbose": true
+                "verbose": true,
             },
             "return":{
-                "successful": "error"
+                "successful": "error",
             },
             "determinate": {
                 "total_epoch": 20,
@@ -75,7 +75,7 @@
                 "train_acc": 0.7064,
                 "val_loss": 1.1592,
                 "val_acc": 0.5915,
-            }
+            },
         },
         {
             "before": null,
@@ -83,13 +83,58 @@
             "prama": {
                 "model_type": "CNN",
                 "load_model_path": "Back_end/model_save/model_CNN.pth",
-                "load_img_path": "Back_end/data/predict/num0.png"
+                "load_img_path": "Back_end/data/predict/num0.png",
             },
             "return": {
                 "successful": "error",
-                "predict": 0
+                "predict": 0,
             },
-            "determinate": false
+            "determinate": false,
+        },
+        {
+            "before": null,
+            "name": "add_conv_layer",
+            "prama": {
+                "out_channels": 32,
+                "kernel_size": 3,
+                "padding": 1,
+                "stride": 1,
+                "act": "relu",
+                "bn_lr_factor": 0.2,
+                "drop2d": 0.1,
+                "lr": 0.5,
+            },
+            "return": {
+                "successful": "error"
+            },
+            "determinate": false,
+        },
+        {
+            "before": null,
+            "name": "add_pool_layer",
+            "prama": {
+                "mode": "max",
+                "kernel_size": 2,
+                "stride": 2,
+            },
+            "return": {
+                "successful": "error"
+            },
+            "determinate": false,
+        },
+        {
+            "before": null,
+            "name": "add_linear_layer",
+            "prama": {
+                "h_dim": 64,
+                "act": "relu",
+                "drop": 0.2,
+                "lr": 1.0,
+            },
+            "return": {
+                "successful": "error"
+            },
+            "determinate": false,
         },
     ]
 }

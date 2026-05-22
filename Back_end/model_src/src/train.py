@@ -8,16 +8,36 @@ from Back_end.model_src.CNN.train_model import train_CNN_console
 from Back_end.model_src.CNN.model import IndependentLrDynamicNet
 # ------------------ other_model ------------------
 
+empty_model = model_layers = {"features":[],"classifier":[]}
+default_model = {
+        "features":   [
+            ["conv", 32, 3, 1, 1, "relu", 0.2, 0.1, 0.5],
+            ["pool", "max", 2, 2],
+            ["conv", 64, 3, 1, 1, "leaky_relu", 1.0, 0.2, 1.2],
+            ["pool", "avg", 4, 4],
+            ["conv", 128, 3, 1, 1, "gelu", 0.0, 0.3, 2.0],
+        ],
+        "classifier": [
+            [256, "leaky_relu", 0.5, 1.0],
+            [128, "relu", 0.3, 1.5],
+            [32 , "relu", 0.3, 1.5]
+        ]
+    }
 
 def train_stream_packer(cfg, train_loader, val_loader):
     # 检测设备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model_type = cfg["model_type"]
+
     model_path = cfg["load_model_path"]
 
     if model_type == "CNN":
-        model = IndependentLrDynamicNet(num_classes=7)
+        model_layers = cfg["model_layers"]
+        if model_layers == empty_model:
+            model_layers = default_model
+
+        model = IndependentLrDynamicNet(num_classes=7,config=model_layers)
         if model_path != "0":
             # 加载参数（state_dict 会加载到 CPU 内存）
             state_dict = torch.load(model_path, map_location='cpu')  # 强制在 CPU 上加载
@@ -40,18 +60,15 @@ def train_stream_packer(cfg, train_loader, val_loader):
             # 捕获整个训练周期的异常（如显存溢出、路径错误）并返回给前端
             yield f"data: {json.dumps({'status': 'failed', 'error': str(e)})}\n\n"
 
-
     # elif model_type == "RNN":
     #     train_RNN()
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
-import torch
 
 
 
-
-def train_stream_packer(cfg, train_loader, val_loader):
+def train_stream_packer_console(cfg, train_loader, val_loader):
     # 检测设备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

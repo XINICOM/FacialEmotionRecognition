@@ -49,9 +49,9 @@ def load_data(arg):
     return ans
 
 train_loader, val_loader = 0, 0
-@app.route('/preprocessing')
-def preprocessing():
-    cfg_or_err = handle_str_config()
+@app.route('/preprocessing<arg>')
+def preprocessing(arg):
+    cfg_or_err = handle_str_config(arg)
     if not isinstance(cfg_or_err, dict):
         return cfg_or_err
     cfg = cfg_or_err
@@ -59,21 +59,63 @@ def preprocessing():
     return ans
 
 
-@app.route('/predict')
-def predict():
-    cfg_or_err = handle_str_config()
+@app.route('/predict<arg>')
+def predict(arg):
+    cfg_or_err = handle_str_config(arg)
     if not isinstance(cfg_or_err, dict):
         return cfg_or_err
     cfg = cfg_or_err
     return predict_s(cfg=cfg)
 
-
-@app.route('/train_stream', methods=['GET', 'POST'])
-def train_stream():
-    cfg_or_err = handle_str_config()
+model_layers = {"features":[],"classifier":[]}
+@app.route('/add_conv_layer<arg>')
+def add_conv_layer(arg):
+    cfg_or_err = handle_str_config(arg)
     if not isinstance(cfg_or_err, dict):
         return cfg_or_err
     cfg = cfg_or_err
+    list = ["conv"]
+    list_index = ["out_channels", "kernel_size", "padding", "stride", "act", "bn_lr_factor", "drop2d", "lr"]
+    for index in list_index:
+        list.append(cfg[index])
+    model_layers["features"].append(list)
+    return jsonify("0")
+
+@app.route('/add_pool_layer<arg>')
+def add_pool_layer(arg):
+    cfg_or_err = handle_str_config(arg)
+    if not isinstance(cfg_or_err, dict):
+        return cfg_or_err
+    cfg = cfg_or_err
+    list = ["pool"]
+    list_index = ["mode", "kernel_size", "stride"]
+    for index in list_index:
+        list.append(cfg[index])
+    model_layers["features"].append(list)
+    return jsonify("0")
+
+
+@app.route('/add_linear_layer<arg>')
+def add_linear_layer(arg):
+    cfg_or_err = handle_str_config(arg)
+    if not isinstance(cfg_or_err, dict):
+        return cfg_or_err
+    cfg = cfg_or_err
+    list = ["linear"]
+    list_index = ["h_dim", "act", "drop", "lr"]
+    for index in list_index:
+        list.append(cfg[index])
+    model_layers["classifier"].append(list)
+    return jsonify("0")
+
+
+@app.route('/train_stream<arg>', methods=['GET', 'POST'])
+def train_stream(arg):
+    cfg_or_err = handle_str_config(arg)
+    if not isinstance(cfg_or_err, dict):
+        return cfg_or_err
+    cfg = cfg_or_err
+    cfg["model_layers"] = model_layers
 
     return Response(
         train_s(cfg=cfg, train_loader=train_loader, val_loader=val_loader),
@@ -85,10 +127,6 @@ def train_stream():
         }
     )
 
-
-@app.route('/add_conv_layer')
-def add_conv_layer():
-    cfg_or_err = handle_str_config()
 
 # @app.route('/train')
 # def train():
