@@ -2,8 +2,7 @@ import json5
 from flask import request
 
 
-def handle_str_config():
-    cfg_str = request.get_data(as_text=True)
+def handle_str_config(cfg_str):
     if not cfg_str:
         return "接收到的配置字符串为空"
     if not isinstance(cfg_str, str):

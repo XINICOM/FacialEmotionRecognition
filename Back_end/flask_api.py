@@ -35,9 +35,9 @@ def stop():
     return "terminate successful"
 
 x_train, x_val, y_train, y_val = 0, 0, 0, 0
-@app.route('/load_data')
-def load_data():
-    cfg_or_err = handle_str_config()
+@app.route('/load_data<arg>')
+def load_data(arg):
+    cfg_or_err = handle_str_config(arg)
     if not isinstance(cfg_or_err, dict):
         return cfg_or_err
     cfg = cfg_or_err
@@ -75,7 +75,6 @@ def train_stream():
         return cfg_or_err
     cfg = cfg_or_err
 
-
     return Response(
         train_s(cfg=cfg, train_loader=train_loader, val_loader=val_loader),
         mimetype='text/event-stream',
@@ -86,6 +85,10 @@ def train_stream():
         }
     )
 
+
+@app.route('/add_conv_layer')
+def add_conv_layer():
+    cfg_or_err = handle_str_config()
 
 # @app.route('/train')
 # def train():
