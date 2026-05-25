@@ -76,7 +76,10 @@ def train_stream_packer_console(cfg, train_loader, val_loader):
     model_path = cfg["load_model_path"]
 
     if model_type == "CNN":
-        model = IndependentLrDynamicNet(num_classes=7)
+        # model_layers = cfg["model_layers"]
+        # if model_layers == empty_model:
+        model_layers = default_model
+        model = IndependentLrDynamicNet(num_classes=7, config=model_layers)
         if model_path != "0":
             # 加载参数（state_dict 会加载到 CPU 内存）
             state_dict = torch.load(model_path, map_location='cpu')  # 强制在 CPU 上加载
