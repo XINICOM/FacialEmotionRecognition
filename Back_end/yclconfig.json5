@@ -1,0 +1,28 @@
+{
+  "model": "CNN",
+  "CNN": {
+    "load_data": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "load_path": "Back_end/data/train/fer2013.csv",
+      "stratify": true
+    },
+    "preprocessing": {
+      "batch_size": 128
+    },
+    "train": {
+      "model_type": "CNN",
+      "epochs": 50,
+      "lr": 0.001,
+      "weight_decay": 1e-4,
+      "load_model_path": "checkpoints/best_model.pth",
+      "save_path": "checkpoints/best_model.pth",
+      "verbose": true
+    },
+    "predict": {
+      "model_type": "CNN",
+      "load_model_path": "checkpoints/best_model.pth",
+      "load_img_path": "predict_img.jpg"
+    }
+  }
+}
