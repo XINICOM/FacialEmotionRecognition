@@ -15,7 +15,7 @@ app = Flask(__name__)
 def pause():
     ctrl = get_controller
     ctrl.pause()
-    return "0"
+    return jsonify("0")
     return "pause successful"
 
 
@@ -23,7 +23,7 @@ def pause():
 def resume():
     ctrl = get_controller
     ctrl.resume()
-    return "0"
+    return jsonify("0")
     return "resume successful"
 
 
@@ -31,7 +31,7 @@ def resume():
 def stop():
     ctrl = get_controller
     ctrl.terminate()
-    return "0"
+    return jsonify("0")
     return "terminate successful"
 
 x_train, x_val, y_train, y_val = 0, 0, 0, 0
@@ -46,7 +46,7 @@ def load_data(arg):
     except FileNotFoundError:
         return f"csv文件未找到,搜索路径 {cfg['load_path']}"
     x_train, x_val, y_train, y_val, ans = load_data_s(df=df, cfg=cfg)
-    return ans
+    return jsonify(ans)
 
 train_loader, val_loader = 0, 0
 @app.route('/preprocessing<arg>')
@@ -56,7 +56,7 @@ def preprocessing(arg):
         return cfg_or_err
     cfg = cfg_or_err
     train_loader, val_loader, ans = preprocessing_s(cfg=cfg, x_train=x_train, y_train=y_train, x_val=x_val, y_val=y_val)
-    return ans
+    return jsonify(ans)
 
 
 @app.route('/predict<arg>')
@@ -65,7 +65,8 @@ def predict(arg):
     if not isinstance(cfg_or_err, dict):
         return cfg_or_err
     cfg = cfg_or_err
-    return predict_s(cfg=cfg)
+    ans = predict_s(cfg=cfg)
+    return jsonify(ans)
 
 model_layers = {"features":[],"classifier":[]}
 @app.route('/add_conv_layer<arg>')

@@ -4,7 +4,7 @@
         {
             "before": null,
             "name": "pause",
-            "prama": null,
+            "param": null,
             "return": {
                 "successful": "error",
             },
@@ -13,7 +13,7 @@
         {
             "before": null,
             "name": "resume",
-            "prama": null,
+            "param": null,
             "return": {
                 "successful": "error",
             },
@@ -22,7 +22,7 @@
         {
             "before": null,
             "name": "terminate",
-            "prama": null,
+            "param": null,
             "return": {
                 "successful": "error",
             },
@@ -31,7 +31,7 @@
         {
             "before": null,
             "name": "load_data",
-            "prama": {
+            "param": {
                 "test_size": 0.2,
                 "random_state": 42,
                 "load_path": "D:\\pycharm\\homework\\FacialEmotionRecognition\\Back_end\\data\\train\\fer2013.csv",
@@ -45,7 +45,7 @@
         {
             "before": "load_data",
             "name": "preprocessing",
-            "prama": {
+            "param": {
                 "batch_size": 64
             },
             "return":{
@@ -56,7 +56,7 @@
         {
             "before": "preprocessing",
             "name": "train_stream",
-            "prama": {
+            "param": {
                 "model_type": "CNN",
                 "epochs": 20,
                 "lr": 0.001,
@@ -80,7 +80,7 @@
         {
             "before": null,
             "name": "predict",
-            "prama": {
+            "param": {
                 "model_type": "CNN",
                 "load_model_path": "Back_end/model_save/model_CNN.pth",
                 "load_img_path": "Back_end/data/predict/num0.png",
@@ -94,7 +94,7 @@
         {
             "before": null,
             "name": "add_conv_layer",
-            "prama": {
+            "param": {
                 "out_channels": 32,
                 "kernel_size": 3,
                 "padding": 1,
@@ -112,7 +112,7 @@
         {
             "before": null,
             "name": "add_pool_layer",
-            "prama": {
+            "param": {
                 "mode": "max",
                 "kernel_size": 2,
                 "stride": 2,
@@ -125,7 +125,7 @@
         {
             "before": null,
             "name": "add_linear_layer",
-            "prama": {
+            "param": {
                 "h_dim": 64,
                 "act": "relu",
                 "drop": 0.2,
