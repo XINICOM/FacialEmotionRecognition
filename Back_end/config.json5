@@ -13,7 +13,7 @@
     },
     "train": {
       "model_type": "CNN",
-      "epochs": 20,
+      "epochs": 80,
       "lr": 0.001,
       "weight_decay": 1e-4,
       "load_model_path": "0",
