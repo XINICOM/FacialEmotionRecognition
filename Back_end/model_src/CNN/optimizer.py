@@ -16,7 +16,8 @@ def configure_optimizer_and_scheduler(model, base_lr, weight_decay, total_epochs
     # 默认实例化一个余弦退火调度器作为骨架
     # 作用是让 base_lr 随着 epoch 自动递减
 
-    scheduler = CosineAnnealingLR(optimizer, T_max=total_epochs, eta_min=1e-6)
-    # scheduler = None
+    # scheduler = CosineAnnealingLR(optimizer, T_max=total_epochs, eta_min=1e-6)
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[45, 60], gamma=0.1)
+    scheduler = None
     return optimizer, scheduler
 

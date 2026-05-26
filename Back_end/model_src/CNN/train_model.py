@@ -1,6 +1,6 @@
-import torch
-import torch.nn as nn
 import torch.optim as optim
+import torchvision.transforms.v2 as transforms
+import time
 
 from Back_end.shared_state import get_controller
 from Back_end.model_src.CNN.optimizer import configure_optimizer_and_scheduler
@@ -210,6 +210,12 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
 
+    gpu_transform = torch.nn.Sequential(
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(degrees=10),
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))
+    )
+
     # ==================== 1. 瘦身成果：一句话配置好优化器和调度器 ====================
     optimizer, scheduler = configure_optimizer_and_scheduler(model, lr, weight_decay, epochs)
 
@@ -229,14 +235,26 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
         model.train()
         running_loss, correct_train, total_train = 0.0, 0, 0
 
-        for inputs, labels in train_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+        for k, (images, labels) in enumerate(train_loader):
+            t0 = time.time()
+
+            images = images.to(device)
+            labels = labels.to(device)
+            t1 = time.time()  # 挪动数据耗时
+
+            inputs = gpu_transform(images)
+            t2 = time.time()  # 空间增强耗时
 
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+            t3 = time.time()  # GPU 计算耗时
+
+            if k % 50 == 0:
+                print(
+                    f"Batch {k} -> 数据搬运: {t1 - t0:.4f}s | 空间增强: {t2 - t1:.4f}s | 神经网络计算: {t3 - t2:.4f}s")
 
             running_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
