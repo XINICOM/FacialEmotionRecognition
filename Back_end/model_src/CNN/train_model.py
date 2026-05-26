@@ -290,9 +290,12 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
         # 获取当前的学习率（用于日志打印展示）
         current_lr = optimizer.param_groups[0]['lr']
         if scheduler is not None:
-            # 如果是 ReduceLROnPlateau，这里传 avg_val_loss；
-            # 如果是普通的 CosineAnnealingLR，直接无脑 step() 即可。
-            scheduler.step()
+            # ⚡ 自动化判断：如果是看指标的 ReduceLROnPlateau，必须喂入验证集准确率
+            if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                scheduler.step(val_acc)  # 喂入你的验证集准确率
+            else:
+                # 如果是普通的 CosineAnnealingLR、StepLR 等静态调度器，直接无脑步进
+                scheduler.step()
 
             # ==================== 控制台打印控制 ====================
         if verbose:

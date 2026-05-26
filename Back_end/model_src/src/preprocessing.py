@@ -49,7 +49,7 @@ def preprocessing(preprocessing_cfg, x_train, x_val, y_train, y_val):
         batch_size=batch_size,
         shuffle=True,
         pin_memory=False,
-        num_workers=0  # 因为此时 __getitem__ 已经没有任何计算量了，0 就能跑出飞一般的速度
+        num_workers=0
     )
     val_loader = DataLoader(
         val_dataset,
