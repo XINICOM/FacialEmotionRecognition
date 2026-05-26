@@ -1,15 +1,14 @@
 import torch
 import torch.nn as nn
 
-
 # ------------ 辅助激活函数 -------------
 def get_activation(act_name):
     if not act_name: return nn.Identity()
     name = act_name.lower()
     if name == "relu":
-        return nn.ReLU()
+        return nn.ReLU(inplace=True) # 加上 inplace 节约显存
     elif name == "leaky_relu":
-        return nn.LeakyReLU(0.1)
+        return nn.LeakyReLU(0.1, inplace=True)
     elif name == "gelu":
         return nn.GELU()
     elif name == "tanh":
@@ -17,14 +16,13 @@ def get_activation(act_name):
     return nn.Identity()
 
 
-# ---------- 2. 标准卷积子模块 ----------
+# ---------- 2. 标准卷积子模块 (已修正：内部 Dropout 默认关闭，由独立层控制) ----------
 class StandardConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=0, stride=1,
                  act="relu", bn_val=False, drop_2d=0.0, lr_factor=1.0):
         super().__init__()
         self.param_groups = []
 
-        # 完美的自动化判断：如果有 BN 自动设为 False；没有 BN 则保留 True
         has_bn = (bn_val is not False and bn_val != 0)
 
         # 自动控制 bias
@@ -50,13 +48,14 @@ class StandardConvBlock(nn.Module):
             self.bn = nn.Identity()
 
         self.act = get_activation(act)
+        # 向下兼容旧配置：如果传了 drop_2d，依然在内部做（不推荐），不传默认是 Identity
         self.drop = nn.Dropout2d(p=drop_2d) if drop_2d > 0 else nn.Identity()
 
     def forward(self, x):
         return self.drop(self.act(self.bn(self.conv(x))))
 
 
-# ---------- 3. 可退化卷积子模块 (新增) ----------
+# ---------- 3. 可退化卷积子模块 ----------
 class DegradableConvBlock(nn.Module):
     def __init__(self, in_c, out_c, kernel, padding=0, stride=1, act="relu", bn_val=False, drop_2d=0.0, lr_factor=1.0,
                  feat_size=(48, 48)):
@@ -64,17 +63,14 @@ class DegradableConvBlock(nn.Module):
         self.param_groups = []
         self.H, self.W = feat_size
 
-        # 路径 A: 局部卷积
         self.local_conv = nn.Conv2d(in_c, out_c, kernel, stride=stride, padding=padding, bias=False)
         self.param_groups.append({"params": self.local_conv.parameters(), "lr_factor": lr_factor,
                                   "desc": f"Degradable_LocalConv({in_c}->{out_c})"})
 
-        # 路径 B: 全局全连接 (用 1x1 卷积接收全图展平)
         self.global_fc = nn.Conv2d(in_c * self.H * self.W, out_c, kernel_size=1, bias=False)
         self.param_groups.append({"params": self.global_fc.parameters(), "lr_factor": lr_factor,
                                   "desc": f"Degradable_GlobalFC({in_c * self.H * self.W}->{out_c})"})
 
-        # 双路径独立 BN 处理
         if bn_val is not False and bn_val != 0:
             bn_lr_factor = bn_val if isinstance(bn_val, (int, float)) else 1.0
             self.local_bn = nn.BatchNorm2d(out_c)
@@ -87,11 +83,8 @@ class DegradableConvBlock(nn.Module):
             self.local_bn = nn.Identity()
             self.global_bn = nn.Identity()
 
-        # 公共后处理
         self.act = get_activation(act)
         self.drop = nn.Dropout2d(p=drop_2d) if drop_2d > 0 else nn.Identity()
-
-        # 退火因子
         self.register_buffer('alpha', torch.tensor(0.0))
 
     def set_alpha(self, alpha_value):
@@ -101,15 +94,12 @@ class DegradableConvBlock(nn.Module):
         B, C, H, W = x.shape
         assert (H, W) == (self.H, self.W), f"特征图尺寸不匹配！期望 {self.H}x{self.W}, 实际 {H}x{W}"
 
-        # 局部
         out_local = self.local_bn(self.local_conv(x))
         _, _, H_out, W_out = out_local.shape
 
-        # 全局
         x_flat = x.view(B, -1, 1, 1)
         out_global = self.global_bn(self.global_fc(x_flat)).expand(-1, -1, H_out, W_out)
 
-        # 融合与后处理
         out = (1.0 - self.alpha) * out_local + self.alpha * out_global
         return self.drop(self.act(out))
 
@@ -128,42 +118,57 @@ class PoolingBlock(nn.Module):
         return self.pool(x)
 
 
-# ---------- 5. 全连接子模块 ----------
+# ---------- 5. 全连接子模块 (升级版：完美支持 BatchNorm1d) ----------
 class LinearBlock(nn.Module):
-    def __init__(self, in_dim, out_dim, act="relu", drop_p=0.0, lr_factor=1.0, idx=0, is_output=False):
+    def __init__(self, in_dim, out_dim, act="relu", bn_val=False, drop_p=0.0, lr_factor=1.0, idx=0, is_output=False):
         super().__init__()
         self.param_groups = []
 
-        self.linear = nn.Linear(in_dim, out_dim)
+        has_bn = (bn_val is not False and bn_val != 0) and (not is_output)
+
+        self.linear = nn.Linear(in_dim, out_dim, bias=not has_bn)
         desc = f"Linear_Output({in_dim}->{out_dim})" if is_output else f"Linear_Hidden_{idx}({in_dim}->{out_dim})"
         self.param_groups.append({"params": self.linear.parameters(), "lr_factor": lr_factor, "desc": desc})
+
+        # 完美的 1D 批归一化注入
+        if has_bn:
+            bn_lr_factor = bn_val if isinstance(bn_val, (int, float)) else 1.0
+            self.bn = nn.BatchNorm1d(out_dim)
+            self.param_groups.append({
+                "params": self.bn.parameters(),
+                "lr_factor": bn_lr_factor,
+                "desc": f"BatchNorm1d_Hidden_{idx}({out_dim})"
+            })
+        else:
+            self.bn = nn.Identity()
 
         self.act = get_activation(act) if not is_output else nn.Identity()
         self.drop = nn.Dropout(p=drop_p) if drop_p > 0 else nn.Identity()
 
     def forward(self, x):
-        return self.drop(self.act(self.linear(x)))
+        # 严格执行工业级标准顺序：Linear -> BN -> Act -> Dropout
+        return self.drop(self.act(self.bn(self.linear(x))))
 
 
 # ==================================================================
-# ---------- 主模型壳子 (IndependentLrDynamicNet) ----------
+# ---------- 主模型壳子 (升级版，完美支持动态解析所有独立组件) ----------
 # ==================================================================
 class IndependentLrDynamicNet(nn.Module):
     def __init__(self, config, num_classes=7, input_channels=1, input_size=(48, 48)):
         super().__init__()
 
         self.param_lr_groups = []
-        self.degradable_layers = []  # 用于给外部 train.py 方便地统一调节 alpha
+        self.degradable_layers = []
 
         # ---------- 组装特征提取器 ----------
         feature_layers = []
         current_channels = input_channels
-        current_size = input_size  # 实时追踪当前特征图大小 (H, W)
+        current_size = input_size
 
         for layer_cfg in config.get("features", []):
             layer_type = layer_cfg[0]
 
-            if layer_type in ["conv", "degradable_conv"]:  # 支持配置里写新的组件名
+            if layer_type in ["conv", "degradable_conv"]:
                 out_channels = layer_cfg[1]
                 kernel_size = layer_cfg[2]
                 padding = layer_cfg[3] if len(layer_cfg) > 3 else 0
@@ -177,15 +182,14 @@ class IndependentLrDynamicNet(nn.Module):
                     block = StandardConvBlock(current_channels, out_channels, kernel_size, padding, stride, act_name,
                                               bn_val, drop_2d, conv_lr_factor)
                 else:
-                    # 动态可退化层，必须传入当前准确的特征图尺寸 current_size
                     block = DegradableConvBlock(current_channels, out_channels, kernel_size, padding, stride, act_name,
                                                 bn_val, drop_2d, conv_lr_factor, feat_size=current_size)
                     self.degradable_layers.append(block)
 
                 feature_layers.append(block)
-                self.param_lr_groups.extend(block.param_groups)  # 自动收集子模块的学习率组
+                self.param_lr_groups.extend(block.param_groups)
 
-                # 依据公式动态推导下一步的特征图大小，供下一层使用
+                # 动态推导特征图形状
                 h_out = (current_size[0] + 2 * padding - kernel_size) // stride + 1
                 w_out = (current_size[1] + 2 * padding - kernel_size) // stride + 1
                 current_size = (h_out, w_out)
@@ -199,10 +203,17 @@ class IndependentLrDynamicNet(nn.Module):
                 block = PoolingBlock(pool_type, kernel_size, stride)
                 feature_layers.append(block)
 
-                # 动态更新池化后的特征图大小
                 h_out = (current_size[0] - kernel_size) // stride + 1
                 w_out = (current_size[1] - kernel_size) // stride + 1
                 current_size = (h_out, w_out)
+
+            # ✨ 新增：支持在 features 列表里塞独立的 Dropout / Dropout2d 算子
+            elif layer_type in ["dropout2d", "dropout"]:
+                p_val = layer_cfg[1] if len(layer_cfg) > 1 else 0.25
+                if layer_type == "dropout2d":
+                    feature_layers.append(nn.Dropout2d(p=p_val))
+                else:
+                    feature_layers.append(nn.Dropout(p=p_val))
 
         self.features = nn.Sequential(*feature_layers)
 
@@ -216,10 +227,13 @@ class IndependentLrDynamicNet(nn.Module):
         for idx, layer_info in enumerate(config.get("classifier", [])):
             h_dim = layer_info[0]
             act_name = layer_info[1] if len(layer_info) > 1 else "relu"
-            drop_p = layer_info[2] if len(layer_info) > 2 else 0.0
-            linear_lr_factor = layer_info[3] if len(layer_info) > 3 else 1.0
+            # ✨ 新增支持：第三个位置是 bn_val (True/False/1.0)，第四个位置是 drop_p，第五个是学习率系数
+            bn_val = layer_info[2] if len(layer_info) > 2 else False
+            drop_p = layer_info[3] if len(layer_info) > 3 else 0.0
+            linear_lr_factor = layer_info[4] if len(layer_info) > 4 else 1.0
 
-            block = LinearBlock(prev_dim, h_dim, act_name, drop_p, linear_lr_factor, idx=idx, is_output=False)
+            block = LinearBlock(prev_dim, h_dim, act=act_name, bn_val=bn_val,
+                                drop_p=drop_p, lr_factor=linear_lr_factor, idx=idx, is_output=False)
             classifier_layers.append(block)
             self.param_lr_groups.extend(block.param_groups)
             prev_dim = h_dim
@@ -235,7 +249,6 @@ class IndependentLrDynamicNet(nn.Module):
         return self.classifier(self.features(x))
 
     def update_alpha(self, alpha_value):
-        """提供一个一键统一修改模型内所有退化层 alpha 的接口"""
         for layer in self.degradable_layers:
             layer.set_alpha(alpha_value)
 

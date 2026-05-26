@@ -12,28 +12,27 @@ empty_model = model_layers = {"features":[],"classifier":[]}
 default_model = {
     "features": [
         # === conv_block1 ===
-        # 第一层卷积：1 -> 64，激活为 relu，启用 BN (传入 1.0)，没有子模块内的 Dropout，学习率系数 1.0
+        # 格式: ["conv", 输出通道, 核大小, padding, stride, 激活, BN系数, 内部Dropout(不用,设为0), 学习率系数]
         ["conv", 64, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
-        # 第二层卷积：末尾带上 0.25 的 2D Dropout
-        ["conv", 64, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["conv", 64, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
         ["pool", "max", 2, 2],
+        ["dropout2d", 0.25],  # ✨ 绝招：在第一组池化后，单独做通道 Dropout
 
         # === conv_block2 ===
         ["conv", 128, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
-        ["conv", 128, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["conv", 128, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
         ["pool", "max", 2, 2],
+        ["dropout2d", 0.25],  # ✨ 在第二组池化后，单独做通道 Dropout
 
         # === conv_block3 ===
         ["conv", 256, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
-        ["conv", 256, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["conv", 256, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
         ["pool", "max", 2, 2],
+        ["dropout2d", 0.25],  # ✨ 在第三组池化后，单独做通道 Dropout
     ],
     "classifier": [
-        # === 全连接隐层 ===
-        # 对应你 LinearBlock 的初始化：[h_dim, act_name, drop_p, linear_lr_factor]
-        # 经过 3 次 pool，特征图刚好是 6x6。展平后的 256*6*6 将由你代码里的 flattened_dim 自动推导。
-        # 这里只需要填隐层输出维度 512，配合 0.5 的高强度 Dropout
-        [512, "relu", 0.5, 1.0]
+        # 格式: [隐层输出维度, 激活函数, 是否启用BN1d, Dropout概率, 学习率系数]
+        [512, "relu", 1.0, 0.5, 1.0]  # ✨ 补上了原作者最核心的 1D BatchNorm！
     ]
 }
 
