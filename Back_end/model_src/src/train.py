@@ -9,70 +9,57 @@ from Back_end.model_src.CNN.model import IndependentLrDynamicNet
 # ------------------ other_model ------------------
 
 empty_model = model_layers = {"features":[],"classifier":[]}
-# default_model = {
-#         "features":   [
-#             ["conv", 32, 3, 1, 1, "relu", 0.2, 0.1, 0.5],
-#             ["pool", "max", 2, 2],
-#             ["degradable_conv", 64, 3, 1, 1, "leaky_relu", 1.0, 0.2, 1.2],
-#             ["pool", "avg", 4, 4],
-#             ["degradable_conv", 128, 3, 1, 1, "gelu", 0.0, 0.3, 2.0],
-#         ],
-#         "classifier": [
-#             [256, "leaky_relu", 0.5, 1.0],
-#             [128, "relu", 0.3, 1.5],
-#             [32 , "relu", 0.3, 1.5]
-#         ]
-#     }
+default_model = {
+    "features": [
+        # === conv_block1 ===
+        # 第一层卷积：1 -> 64，激活为 relu，启用 BN (传入 1.0)，没有子模块内的 Dropout，学习率系数 1.0
+        ["conv", 64, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
+        # 第二层卷积：末尾带上 0.25 的 2D Dropout
+        ["conv", 64, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["pool", "max", 2, 2],
+
+        # === conv_block2 ===
+        ["conv", 128, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
+        ["conv", 128, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["pool", "max", 2, 2],
+
+        # === conv_block3 ===
+        ["conv", 256, 3, 1, 1, "relu", 1.0, 0.0, 1.0],
+        ["conv", 256, 3, 1, 1, "relu", 1.0, 0.25, 1.0],
+        ["pool", "max", 2, 2],
+    ],
+    "classifier": [
+        # === 全连接隐层 ===
+        # 对应你 LinearBlock 的初始化：[h_dim, act_name, drop_p, linear_lr_factor]
+        # 经过 3 次 pool，特征图刚好是 6x6。展平后的 256*6*6 将由你代码里的 flattened_dim 自动推导。
+        # 这里只需要填隐层输出维度 512，配合 0.5 的高强度 Dropout
+        [512, "relu", 0.5, 1.0]
+    ]
+}
 
 # default_model = {
 #     "features": [
-#         # 阶段 1：基础特征提取（纯 Conv），死死锁住空间结构
 #         ["conv", 32, 3, 1, 1, "relu", 0.2, 0.1, 0.5],
-#         ["pool", "max", 2, 2],  # 48x48 -> 24x24
+#         ["pool", "max", 2, 2],
 #
-#         # 阶段 2：中层特征提取（纯 Conv），继续提取五官几何
-#         ["conv", 64, 3, 1, 1, "leaky_relu", 1.0, 0.2, 1.0],
-#         ["pool", "max", 2, 2],  # 24x24 -> 12x12
+#         # 适当提高中间卷积层的 Dropout (从 0.2 调到 0.3)，在特征源头注入噪声
+#         ["conv", 64, 3, 1, 1, "leaky_relu", 0.3, 0.2, 1.0],
+#         ["pool", "max", 2, 2],
 #
-#         # 阶段 3：高层特征提取（纯 Conv），把通道数顶上去
-#         ["conv", 128, 3, 1, 1, "gelu", 1.0, 0.2, 1.0],
-#         ["pool", "max", 2, 2],  # 12x12 -> 6x6
+#         # 高层卷积也加上 0.3 的 Dropout
+#         ["conv", 128, 3, 1, 1, "gelu", 0.3, 0.2, 1.0],
+#         ["pool", "max", 2, 2],
 #
-#         # 阶段 4：临门一脚（唯一的动态可退化层！）
-#         # 此时特征图是 6x6，尺寸小、参数轻量（128*6*6*128），绝配！
-#         # 最后的 2.5 倍学习率倍数给得非常精准，能推着全连接快速收敛
+#         # 可退化层保持 0.0（因为 FC 路径本身需要稳定的参数更新，我们在分类器里统一拦截它）
 #         ["degradable_conv", 128, 3, 1, 1, "gelu", 0.0, 0.3, 2.5],
 #     ],
 #     "classifier": [
-#         # 因为最后一层退化层已经完成了“全图跨域联动”，后面的分类器可以大幅度瘦身
-#         [128, "leaky_relu", 0.5, 1.5],
-#         [32, "relu", 0.5, 1.5]
+#         # 【手术核心】：砍掉 32 那一层，直接 256 -> 128 -> 7。
+#         # 每一层 FC 后面，全部死死按住 0.5 的高强度 Dropout！
+#         [256, "leaky_relu", 0.5, 1.0],
+#         [128, "relu", 0.5, 1.5],  # 这里的 Dropout 从 0.3 暴力提升到 0.5
 #     ]
 # }
-
-default_model = {
-    "features": [
-        ["conv", 32, 3, 1, 1, "relu", 0.2, 0.1, 0.5],
-        ["pool", "max", 2, 2],
-
-        # 适当提高中间卷积层的 Dropout (从 0.2 调到 0.3)，在特征源头注入噪声
-        ["conv", 64, 3, 1, 1, "leaky_relu", 0.3, 0.2, 1.0],
-        ["pool", "max", 2, 2],
-
-        # 高层卷积也加上 0.3 的 Dropout
-        ["conv", 128, 3, 1, 1, "gelu", 0.3, 0.2, 1.0],
-        ["pool", "max", 2, 2],
-
-        # 可退化层保持 0.0（因为 FC 路径本身需要稳定的参数更新，我们在分类器里统一拦截它）
-        ["degradable_conv", 128, 3, 1, 1, "gelu", 0.0, 0.3, 2.5],
-    ],
-    "classifier": [
-        # 【手术核心】：砍掉 32 那一层，直接 256 -> 128 -> 7。
-        # 每一层 FC 后面，全部死死按住 0.5 的高强度 Dropout！
-        [256, "leaky_relu", 0.5, 1.0],
-        [128, "relu", 0.5, 1.5],  # 这里的 Dropout 从 0.3 暴力提升到 0.5
-    ]
-}
 
 
 def train_stream_packer(cfg, train_loader, val_loader):

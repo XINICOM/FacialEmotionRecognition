@@ -9,7 +9,7 @@
       "stratify": true            //true:在划分时分层(能使得数据能平均)
     },
     "preprocessing": {
-      "batch_size": 64
+      "batch_size": 128
     },
     "train": {
       "model_type": "CNN",
