@@ -11,8 +11,8 @@ import torch
 # ==================== 路径配置 ====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "fer2013.csv")
-MODEL_DIR = os.path.join(BASE_DIR, "checkpoints")
-CONTROL_DIR = os.path.join(BASE_DIR, ".control")
+MODEL_DIR = os.path.join(BASE_DIR, "../checkpoints")
+CONTROL_DIR = os.path.join(BASE_DIR, "../.control")
 MODEL_SAVE_PATH = os.path.join(MODEL_DIR, "best_model.pth")
 
 # ==================== 数据配置 ====================

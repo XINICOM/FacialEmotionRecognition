@@ -3,7 +3,6 @@
 提供交互式菜单，集成 load_data / preprocessing / train / predict / pause / resume / terminate
 """
 import os
-import sys
 import torch
 from config import (DEVICE, MODEL_SAVE_PATH, EMOTION_LABELS)
 from load_data import load_data

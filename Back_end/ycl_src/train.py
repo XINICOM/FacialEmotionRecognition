@@ -1,7 +1,6 @@
 """
 训练模块 - 模型训练与评估，支持 pause / resume / terminate
 """
-import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
