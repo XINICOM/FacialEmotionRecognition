@@ -12,8 +12,6 @@ def configure_optimizer_and_scheduler(model, base_lr, weight_decay, total_epochs
     # 2. 初始化核心优化器
     optimizer = optim.Adam(optimizer_groups, lr=base_lr, weight_decay=weight_decay)
 
-    optimizer = optim.Adam(optimizer_groups, lr=base_lr, weight_decay=1e-4)
-
     # 2. 定义 ReduceLROnPlateau 调度器
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,

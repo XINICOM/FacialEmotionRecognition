@@ -245,6 +245,17 @@ class IndependentLrDynamicNet(nn.Module):
 
         self.classifier = nn.Sequential(*classifier_layers)
 
+        for m in self.modules():
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
+                # 使用 Kaiming 正态分布初始化（专为 ReLU 设计）
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
+            elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
+                # 批归一化权重初始化为 1，偏置为 0
+                nn.init.constant_(m.weight, 1.0)
+                nn.init.constant_(m.bias, 0.0)
+
     def forward(self, x):
         return self.classifier(self.features(x))
 
