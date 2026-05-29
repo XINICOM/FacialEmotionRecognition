@@ -6,8 +6,8 @@ import torch
 import numpy as np
 from PIL import Image
 from torchvision import transforms
-import config as cfg
-from model import EmotionCNN
+from . import config as cfg
+from .model import EmotionCNN
 
 
 def predict_image(image_path):

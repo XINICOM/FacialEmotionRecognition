@@ -26,9 +26,9 @@ VAL_SPLIT_RATIO = 0.1
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ==================== 控制标志文件 ====================
-PAUSE_FLAG = os.path.join(CONTROL_DIR, "pause.flag")
-RESUME_FLAG = os.path.join(CONTROL_DIR, "resume.flag")
-TERMINATE_FLAG = os.path.join(CONTROL_DIR, "terminate.flag")
+PAUSE_FLAG = 0
+RESUME_FLAG = 0
+TERMINATE_FLAG = 0
 
 # 确保目录存在
 os.makedirs(MODEL_DIR, exist_ok=True)
