@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify
+import threading
 import json
 
 import src.config as cfg
@@ -7,9 +8,7 @@ from src.load_data import load_data as load_data_s
 from src.preprocessing import preprocessing as preprocessing_s
 from src.train import do_train as train_s
 from src.predict import predict_image as predict_s
-from src.control import pause as pause_s
-from src.control import resume as resume_s
-from src.control import terminate as terminate_s
+from src.share_state import get_controller
 app = Flask(__name__)
 
 
@@ -20,20 +19,23 @@ app = Flask(__name__)
 @app.route('/pause')
 def pause():
     print(f"调用了{pause.__name__}")
-    pause_s()
+    ctrl = get_controller()
+    ctrl.pause()
     return jsonify({"successful": "0"})
 
 
 @app.route('/resume')
 def resume():
     print(f"调用了{resume.__name__}")
-    resume_s()
+    ctrl = get_controller()
+    ctrl.resume()
     return jsonify({"successful": "0"})
 
 @app.route('/terminate')
 def terminte():
     print(f"调用了{terminte.__name__}")
-    terminate_s()
+    ctrl = get_controller()
+    ctrl.terminate()
     return jsonify({"successful": "0"})
 
 
@@ -74,8 +76,13 @@ def train_stream(arg):
                                 params.get("MODEL_SAVE_PATH").replace(",,", "/"),)
         print(f"调用了{train_stream.__name__}")
         global train_loader, val_loader
-        best_val_acc = train_s(train_loader, val_loader)
-        return jsonify({"successful": "0", "best_val_acc": best_val_acc})
+        t = threading.Thread(
+            target=train_s,
+            kwargs={"train_loader": train_loader, "val_loader": val_loader},
+            daemon=True
+        )
+        t.start()
+        return jsonify({"successful": "0"})
     except Exception as e:
         return jsonify({"successful": str(e)})
 

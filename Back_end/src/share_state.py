@@ -20,7 +20,7 @@ class TaskController:
             self._state = -1
             self._cond.notify_all()
 
-    def wait_if_paused_or_stop(self):
+    def wait_if_paused_or_terminated(self):
         """在任务循环中调用，返回 True 表示需要终止"""
         with self._cond:
             while self._state == 1:

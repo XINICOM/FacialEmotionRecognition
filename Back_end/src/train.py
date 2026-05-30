@@ -8,35 +8,9 @@ import json
 
 
 from . import config as cfg
-from . import control
+from .share_state import get_controller
 from .model import EmotionCNN
 
-
-# def do_train(train_loader, val_loader, resume_from_checkpoint=False):
-#     """执行训练"""
-#     model = EmotionCNN()
-#     start_epoch = 0
-#     best_val_acc = 0.0
-#     optimizer_state = None
-#     scheduler_state = None
-#
-#     if resume_from_checkpoint and os.path.exists(cfg.MODEL_SAVE_PATH):
-#         checkpoint = torch.load(cfg.MODEL_SAVE_PATH, map_location=cfg.DEVICE, weights_only=True)
-#         model.load_state_dict(checkpoint["model_state_dict"])
-#         start_epoch = checkpoint["epoch"]
-#         best_val_acc = checkpoint["best_val_acc"]
-#         optimizer_state = checkpoint.get("optimizer_state_dict")
-#         scheduler_state = checkpoint.get("scheduler_state_dict")
-#         print(f"[main] 从 checkpoint 恢复: epoch={start_epoch}, best_val_acc={best_val_acc:.4f}")
-#     else:
-#         control.clear_all_flags()
-#
-#     model, best_val_acc = train(
-#         model, train_loader, val_loader,
-#         start_epoch=start_epoch, best_val_acc=best_val_acc,
-#         optimizer_state=optimizer_state, scheduler_state=scheduler_state
-#     )
-#     return model
 
 
 def do_train(train_loader, val_loader, resume_from_checkpoint=False):
@@ -45,7 +19,7 @@ def do_train(train_loader, val_loader, resume_from_checkpoint=False):
 
 
     model, best_val_acc, current_epoch = train(model, train_loader, val_loader)
-    return best_val_acc, current_epoch
+    print(json.dumps({"best_val_acc": best_val_acc, "current_epoch": current_epoch,}))
 
 
 def train(model, train_loader, val_loader, start_epoch=0, best_val_acc=0.0,
@@ -70,13 +44,13 @@ def train(model, train_loader, val_loader, start_epoch=0, best_val_acc=0.0,
 
     # print(f"[train] 开始训练 | 设备: {cfg.DEVICE} | 总轮数: {cfg.NUM_EPOCHS}")
     # print(f"[train] 起始轮次: {start_epoch} | 历史最优验证精度: {best_val_acc:.4f}")
+    ctrl = get_controller()
 
     for epoch in range(start_epoch, cfg.NUM_EPOCHS):
+        if ctrl.wait_if_paused_or_terminated():
+            print("收到终止信号，退出任务")
+            return epoch
         # 检查控制信号
-        control.check_pause()
-        if control.check_terminate():
-            # print(f"[train] 训练被用户终止于 epoch {epoch}")
-            break
 
         # ---- 训练阶段 ----
         model.train()
