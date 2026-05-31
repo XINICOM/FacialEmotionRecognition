@@ -22,10 +22,8 @@ class EnhancedFERDataset(Dataset):
         return self.normalize(img), label
 
 
-def preprocessing(preprocessing_cfg, x_train, x_val, y_train, y_val):
-    batch_size = preprocessing_cfg.get("batch_size", 128)
-
-    print("[preprocessing] 正在一次性将全量数据做预缩放 (0~1)...")
+def preprocessing(cfg, x_train, x_val, y_train, y_val):
+    batch_size = cfg.get("batch_size", 128)
 
     # 【核心改动】：在外面一次性解决全量数据的归一化和维度确保
     x_train = x_train.float()
@@ -59,5 +57,4 @@ def preprocessing(preprocessing_cfg, x_train, x_val, y_train, y_val):
         num_workers=0
     )
 
-    print(f"[preprocessing] 数据管道组装完毕")
-    return train_loader, val_loader, "0"
+    return train_loader, val_loader

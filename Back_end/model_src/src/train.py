@@ -109,12 +109,12 @@ def train_stream_packer_console(cfg, train_loader, val_loader):
     # 检测设备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model_type = cfg["model_type"]
-    model_path = cfg["load_model_path"]
+    # model_type = cfg["model_type"]
+    model_path = cfg.get("load_model_path", "0")
 
-    if model_type == "CNN":
-        # model_layers = cfg["model_layers"]
-        # if model_layers == empty_model:
+    # if model_type == "CNN":
+    model_layers = cfg["model_layers"]
+    if model_layers == empty_model:
         model_layers = default_model
         model = IndependentLrDynamicNet(num_classes=7, config=model_layers)
         if model_path != "0":
@@ -122,11 +122,13 @@ def train_stream_packer_console(cfg, train_loader, val_loader):
             state_dict = torch.load(model_path, map_location='cpu')  # 强制在 CPU 上加载
             model.load_state_dict(state_dict)
 
-        return train_CNN_console(model, train_loader, val_loader, epochs=cfg["epochs"],
-                         device=device, lr=cfg["lr"], weight_decay=cfg["weight_decay"],
-                         save_path=cfg["save_path"], verbose=cfg["verbose"])
+        best_val_acc, best_epoch = train_CNN_console(model, train_loader, val_loader, epochs=cfg.get("epochs", 70),
+                            device=device, lr=cfg.get("lr", 0.001), weight_decay=cfg.get("weight_decay", 1e-4),
+                            save_path=cfg.get("save_path", "model_save/model_CNN.pth"),
+                            verbose=cfg.get("verbose",False))
+        return best_val_acc, best_epoch
 
     # elif model_type == "RNN":
     #     train_RNN()
-    else:
-        raise ValueError(f"Unknown model type: {model_type}")
+    # else:
+    #     raise ValueError(f"Unknown model type: {model_type}")

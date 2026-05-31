@@ -1,8 +1,24 @@
+import json
+
 import torch.optim as optim
 import torchvision.transforms.v2 as transforms
 import time
 
-from Back_end.shared_state import get_controller
+import sys
+import os
+
+# 1. 获取当前文件 (train_model.py) 的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. 一路往上推，找到你的运行根目录 Back_end
+# current_dir 是 CNN -> dirname 是 model_src -> 再 dirname 就是 Back_end 了
+backend_root = os.path.dirname(os.path.dirname(current_dir))
+
+# 3. 把 Back_end 的路径强行插进 Python 的搜索第一顺位
+if backend_root not in sys.path:
+    sys.path.insert(0, backend_root)
+
+from shared_state import get_controller
 from Back_end.model_src.CNN.optimizer import configure_optimizer_and_scheduler
 from Back_end.model_src.CNN.alpha import calculate_annealing_alpha
 
@@ -206,7 +222,7 @@ import torch.nn as nn
 
 
 def train_CNN_console(model, train_loader, val_loader, epochs, device,
-                      lr=0.001, weight_decay=0.0, save_path="best_model.pth", verbose=True):
+                      lr=0.001, weight_decay=0.0, save_path="best_model.pth", verbose=False):
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
 
@@ -225,9 +241,10 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
     }
     best_val_acc = 0.0
 
-    for epoch in range(epochs):
+    ctrl = get_controller()
 
-        # ==================== 2. 瘦身成果：更新可退化层的 Alpha 开关 ====================
+    for epoch in range(epochs):
+        # ==================== 可退化层的 Alpha 开关 ====================
         alpha_val = calculate_annealing_alpha(epoch, epochs)
         model.update_alpha(alpha_val)
 
@@ -252,9 +269,8 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
             optimizer.step()
             t3 = time.time()  # GPU 计算耗时
 
-            if k % 50 == 0:
-                print(
-                    f"Batch {k} -> 数据搬运: {t1 - t0:.4f}s | 空间增强: {t2 - t1:.4f}s | 神经网络计算: {t3 - t2:.4f}s")
+            if k % 50 == 0 and verbose:
+                print(f"Batch {k} -> to_CUDA: {t1 - t0:.4f}s | transform: {t2 - t1:.4f}s | calculate: {t3 - t2:.4f}s")
 
             running_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
@@ -286,7 +302,7 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
         history['val_loss'].append(avg_val_loss)
         history['val_acc'].append(val_acc)
 
-        # ==================== 3. 动态学习率步进（为后续缝合做的完美埋伏） ====================
+        # ==================== 动态学习率步进（为后续缝合做的完美埋伏） ====================
         # 获取当前的学习率（用于日志打印展示）
         current_lr = optimizer.param_groups[0]['lr']
         if scheduler is not None:
@@ -303,6 +319,11 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
                   f"Train Loss: {avg_train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% || "
                   f"Val Loss: {avg_val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
 
+        else:
+            print(json.dumps({"total_epochs": epochs, "current_epoch": epoch+1, "current_lr": current_lr,
+                             "train_loss": avg_train_loss, "train_acc": train_acc,
+                             "val_loss": avg_val_loss, "val_acc": val_acc}, ensure_ascii=False))
+
         # ==================== 保存最佳模型 ====================
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -310,4 +331,8 @@ def train_CNN_console(model, train_loader, val_loader, epochs, device,
             history['best_val_acc'] = best_val_acc
             history['best_epoch'] = epoch
 
-    return history
+        if ctrl.wait_if_paused_or_terminate():
+            print("task terminated")
+            break
+
+    return history['best_val_acc'], history['best_epoch']
